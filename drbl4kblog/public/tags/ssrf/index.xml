@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>SSRF on DRBL4K Blogs</title>
+    <link>https://drbl4k.github.io/tags/ssrf/</link>
+    <description>Recent content in SSRF on DRBL4K Blogs</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Mon, 28 Jul 2025 21:10:21 +0530</lastBuildDate><atom:link href="https://drbl4k.github.io/tags/ssrf/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>In The Plain Sight - A Classic Filter Mistake</title>
+      <link>https://drbl4k.github.io/posts/in-the-plain-sight/</link>
+      <pubDate>Mon, 28 Jul 2025 21:10:21 +0530</pubDate>
+      
+      <guid>https://drbl4k.github.io/posts/in-the-plain-sight/</guid>
+      <description>Prologue: Being in application security, I usually see mates making this one tiny mistake with their Burpsuite configuration. Lot of testers usually go with the default “HTTP History Filters”. In this blog I will cover the importance of the unchecked filters and how it helped me as well as fellow hackers out in the wild to attain “Path Traversal” and “Server-Side Request Forgery” in a real engagement.
+Most of public reports (around 55%) in Hackerone indicate that, the components that are vulnerable to local file inclusions and SSRFs are identified to be either a functionality of an image/other files (ie: PDF, CSV, ZIP etc.</description>
+      <content>&lt;blockquote&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;Prologue&lt;/strong&gt;&lt;/em&gt;: Being in application security, I usually see mates making this one tiny mistake with their Burpsuite configuration. Lot of testers usually go with the default  “HTTP History Filters”. In this blog I will cover the importance of the unchecked filters and how it helped me as well as fellow hackers out in the wild to attain &lt;strong&gt;“Path Traversal”&lt;/strong&gt; and &lt;strong&gt;“Server-Side Request Forgery”&lt;/strong&gt; in a real engagement.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr&gt;
+&lt;p&gt;Most of public reports (&lt;em&gt;around 55%&lt;/em&gt;) in &lt;strong&gt;Hackerone&lt;/strong&gt; indicate that, the components that are vulnerable to local file inclusions and SSRFs are identified to be either a functionality of an image/other files &lt;code&gt;(ie: PDF, CSV, ZIP etc.)&lt;/code&gt; being loaded into the application through an external interaction &lt;code&gt;(ie: ?image=https://test.com/a.pdf)&lt;/code&gt; or fetched locally within the file system of the hosted application &lt;code&gt;(ie: ?filename=test.png)&lt;/code&gt;.&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;image.png&#34; src=&#34;https://drbl4k.github.io/images/In-the-plain-sight/image.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;Source: &lt;a href=&#34;https://vickieli.dev/ssrf/ssrf-in-the-wild/&#34;&gt;https://vickieli.dev/ssrf/ssrf-in-the-wild/&lt;/a&gt;&lt;/em&gt;&lt;/p&gt;
+&lt;p&gt;It’s fascinating, because, we as Pentesters usually go after the core functionalities of an application, (&lt;em&gt;Since it affects the business 😢&lt;/em&gt;)  that could or couldn’t be vulnerable to such attacks, are really missing this perspective of attack vector all together. Let’s leave application pentest realm for a second, imagine conducting an external pentest, and encountering an application vulnerable to a full read SSRF attack and letting it slide because of the default filters. #horible&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;I would like to share my experience on one of my recent pentest activity, where almost on the last day of the pentest I got hold of a path traversal vulnerability which led to disclosure of internal files.&lt;/p&gt;
+&lt;p&gt;Real Application Details:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Microsoft IIS server v10&lt;/li&gt;
+&lt;li&gt;Internal web app (Bound to be accessed within a restricted environment)&lt;/li&gt;
+&lt;li&gt;Has multiple features to download CSV and ZIP files.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;em&gt;&lt;strong&gt;Disclaimer&lt;/strong&gt;: the below shown POCs are not from a real world application. Keeping confidentiality in mind I tried to &lt;strong&gt;simulate&lt;/strong&gt; the same attacks over a &lt;strong&gt;secure environment&lt;/strong&gt;. However, the below discussed techniques were used in a real web application assessment.&lt;/em&gt;&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;hr&gt;
+&lt;p&gt;On the last day I usually go for analysis of images and other files like PDFs and Excel for metadata exposure and upon applying the Burpsuite filter, one endpoint stood out. It was an endpoint trying to fetch a .zip file from the internal file system.  Now obviously it won’t be visible in the HTTP history due to receiving a binary file &lt;strong&gt;(&lt;em&gt;garbage data&lt;/em&gt;)&lt;/strong&gt; as response. The request had an interesting parameter which was pulling a zip file &lt;code&gt;/download/zip?fnames=UserLog\admin.zip&amp;amp;sec=zip&lt;/code&gt;. It looked something like this in the simulated environment.&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;4.png&#34; src=&#34;https://drbl4k.github.io/images/In-the-plain-sight/4.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;Hmm, We all know what would have been my next move. Yes I tampered the &lt;code&gt;?fnames=&lt;/code&gt; parameter with the payload &lt;code&gt;..\..\..\..\..\testfile&lt;/code&gt; (Note, since the real request had a backslash with the file name, I used a traversal payload with backslashes). The real response for the request was a stack trace error indicating that &lt;code&gt;&amp;quot;The file was not found in the path E:\testfile&amp;quot;&lt;/code&gt;. &lt;strong&gt;(&lt;em&gt;Pro Tip: something as simple as a stack trace could reveal a lot about the backend. #fightwithdevs&lt;/em&gt;)&lt;/strong&gt; Bingo! as soon I got the error indicating the internal file path I figured out where I was, and, I tried to fetch the “web.config” file &lt;strong&gt;(&lt;em&gt;Its a default multi purpose configuration file for IIS servers&lt;/em&gt;)&lt;/strong&gt; from the “E:” directory with the following payload &lt;code&gt;..\..\..\..\..\web.config&lt;/code&gt;. It looked something like this.&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;5.png&#34; src=&#34;https://drbl4k.github.io/images/In-the-plain-sight/5.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img alt=&#34;6.png&#34; src=&#34;https://drbl4k.github.io/images/In-the-plain-sight/6.png&#34;&gt;&lt;/p&gt;
+&lt;p&gt;The web.config file usually throws an error of some kind (403 or 404 usually) if we try to access it directly through a web browser, but because of this path traversal vulnerability, I was able to access it and show the impact. In my case the file consisted details about the SMTP configuration with keys present in it. (&lt;em&gt;I was on top of the world&lt;/em&gt;)&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;Moral of the story, never trust any (&lt;em&gt;and I mean &lt;strong&gt;ANY&lt;/strong&gt;&lt;/em&gt;) of the functionalities. By assuming so, we may giveaway the chance to find something cool. Even something as simple as a &lt;strong&gt;default Burpsuite filter&lt;/strong&gt;, which hides images and binary data will act against us. Let’s be honest, who doesn’t want to find and exploit a local file inclusion or an SSRF? not me at least.&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;References:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href=&#34;https://hackerone.com/reports/1888808&#34;&gt;https://hackerone.com/reports/1888808&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://hackerone.com/reports/1427086&#34;&gt;https://hackerone.com/reports/1427086&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href=&#34;https://vickieli.dev/ssrf/ssrf-in-the-wild/&#34;&gt;https://vickieli.dev/ssrf/ssrf-in-the-wild/&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;p&gt;&lt;strong&gt;Happy Hunting Fellas.&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;em&gt;Yours Truly: DRBL4K&lt;/em&gt;&lt;/p&gt;
+</content>
+    </item>
+    
+  </channel>
+</rss>
