@@ -1,0 +1,6 @@
+baseURL = 'https://drbl4k.github.io/'
+languageCode = 'en-us'
+title = 'drbl4k blogs'
+theme = 'hugo-theme-terminal'
+customCSS = ["css/custom.css"]
+pagination.pagerSize = 5
